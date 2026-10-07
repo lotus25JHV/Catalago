@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catálogo y Gestión de Productos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS CDN for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        amz: {
+                            orange: '#FF9900',
+                            yellow: '#FEBD69',
+                            dark: '#131921',
+                            blue: '#007185',
+                            link: '#007185'
+                        },
+                        wa: {
+                            500: '#25D366',
+                            600: '#128C7E',
+                            700: '#075E54'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased font-sans flex flex-col min-h-screen bg-slate-50">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center font-bold text-white shadow-inner">
+                    <i class="fa-solid fa-store text-sm"></i>
+                </div>
+                <div>
+                    <h1 id="headerStoreName" class="font-bold text-base leading-tight truncate max-w-[160px]">Mi Tienda Express</h1>
+                    <p id="headerModeBadge" class="text-[10px] text-brand-100 font-medium tracking-wide uppercase">Vista Cliente</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btnHeaderAdmin" onclick="handleAdminTrigger()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition">
+                    <i id="headerAdminIcon" class="fa-solid fa-lock text-brand-500"></i>
+                    <span id="btnHeaderAdminText">Admin</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto pb-24 relative overflow-x-hidden">
+
+        <section id="customerView" class="p-4 space-y-4 animate-fade-in">
+            <!-- Banner / Announcement -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden border border-slate-800">
+                <div class="relative z-10">
+                    <span class="bg-amz-orange/20 text-amz-yellow text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-amz-orange/30">Stock Propio & Encargos</span>
+                    <h2 class="text-xl font-bold mt-1">Catálogo Oficial</h2>
+                    <p class="text-xs text-slate-300 mt-1">Productos garantizados con atención inmediata por WhatsApp.</p>
+                </div>
+                <i class="fa-solid fa-boxes-packing absolute -bottom-3 -right-2 text-7xl text-white/5 transform -rotate-12"></i>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="space-y-2 sticky top-14 z-20 bg-slate-50 pt-1 pb-2">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="filterProducts()" placeholder="Buscar por producto, marca o categoría..." 
+                        class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                </div>
+
+                <!-- Category Pills -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar py-1" id="categoryFilterContainer">
+                    <!-- Dynamic Pills -->
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="customerProductGrid" class="grid grid-cols-2 gap-3">
+                <!-- Dynamic Products -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyCatalogState" class="hidden py-12 text-center space-y-3">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-2xl">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <p class="text-slate-500 text-sm font-medium">No se encontraron productos disponibles.</p>
+            </div>
+
+            <!-- Discreet Footer Link for Vendor Login -->
+            <div class="pt-8 pb-4 text-center">
+                <button onclick="openLoginModal()" class="text-[11px] text-slate-400 hover:text-slate-600 transition flex items-center justify-center gap-1.5 mx-auto py-2 px-3 rounded-lg hover:bg-slate-200/50">
+                    <i class="fa-solid fa-user-shield text-[10px]"></i>
+                    <span>Acceso Exclusivo Vendedor</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="adminView" class="p-4 space-y-5 hidden animate-fade-in">
+            
+            <!-- Dashboard Top Control Bar -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                            <h2 class="font-bold text-slate-800 text-lg">Panel Administrador</h2>
+                        </div>
+                        <p class="text-xs text-slate-500">Gestión de inventario y registro de ventas</p>
+                    </div>
+                    <button onclick="publishAndPreview()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-eye"></i> Ver Catálogo
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                    <button onclick="openProductModal()" class="bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus"></i> Producto
+                    </button>
+                    <button onclick="openNewSaleModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-cash-register"></i> Nueva Venta
+                    </button>
+                    <button onclick="openSettingsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-sliders"></i> Ajustes
+                    </button>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex gap-2">
+                    <button onclick="exportSalesToExcel()" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Reporte Excel (.xlsx)
+                    </button>
+                    <button onclick="logoutAdmin()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-right-from-bracket"></i> Salir
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ingresos Totales</span>
+                        <i class="fa-solid fa-sack-dollar text-emerald-500 text-sm"></i>
+                    </div>
+                    <p id="metricTotalRevenue" class="text-xl font-black text-slate-900">$0.00</p>
+                    <p class="text-[10px] text-slate-400">Total acumulado</p>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Unidades Vendidas</span>
+                        <i class="fa-solid fa-box-archive text-brand-500 text-sm"></i>
+                    </div>
+                    <p id="metricTotalItems" class="text-xl font-black text-slate-900">0</p>
+                    <p class="text-[10px] text-slate-400">Productos entregados</p>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Órdenes</span>
+                        <i class="fa-solid fa-receipt text-amber-500 text-sm"></i>
+                    </div>
+                    <p id="metricTotalOrders" class="text-xl font-black text-slate-900">0</p>
+                    <p class="text-[10px] text-slate-400">Transacciones</p>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ticket Promedio</span>
+                        <i class="fa-solid fa-chart-line text-indigo-500 text-sm"></i>
+                    </div>
+                    <p id="metricAvgOrder" class="text-xl font-black text-slate-900">$0.00</p>
+                    <p class="text-[10px] text-slate-400">Por compra</p>
+                </div>
+            </div>
+
+            <!-- Analytics Chart Card -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Productos Más Vendidos</h3>
+                        <p class="text-[11px] text-slate-500">Unidades vendidas por artículo</p>
+                    </div>
+                    <i class="fa-solid fa-chart-bar text-brand-600"></i>
+                </div>
+                <div class="relative h-48 w-full">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Sales History Table Card -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 text-sm">Historial de Ventas</h3>
+                    <span id="salesHistoryCount" class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">0 registros</span>
+                </div>
+                <div id="salesHistoryList" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                    <!-- Dynamic Sales -->
+                </div>
+            </div>
+
+            <!-- Admin Product Management List -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="font-bold text-slate-700 text-sm">Tus Productos en Catálogo (<span id="adminProductCount">0</span>)</h3>
+                </div>
+                <div id="adminProductList" class="space-y-3">
+                    <!-- Dynamic Products -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: LOGIN / AUTHENTICATION WITH EYE TOGGLE -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-fade-in border border-slate-100">
+            <div class="p-6 text-center space-y-4">
+                <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto text-brand-600 text-2xl shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-slate-900 text-lg">Acceso Vendedor</h3>
+                    <p class="text-xs text-slate-500 mt-1">Ingresa la clave de seguridad para gestionar tu catálogo</p>
+                </div>
+
+                <form onsubmit="handleLoginSubmit(event)" class="space-y-4 pt-2">
+                    <div class="relative flex items-center">
+                        <input type="password" id="loginPinInput" maxlength="30" placeholder="Ingrese clave" required
+                            class="w-full text-center tracking-wider text-base font-bold py-3 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none transition">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 text-slate-400 hover:text-slate-600 p-1 transition">
+                            <i id="passwordToggleIcon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <div id="loginErrorMsg" class="hidden text-xs text-red-600 font-semibold bg-red-50 py-2 px-3 rounded-xl border border-red-100">
+                        Clave incorrecta. Inténtalo de nuevo.
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" onclick="closeLoginModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 shadow-md transition">
+                            Entrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTER NEW SALE -->
+    <div id="newSaleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-fade-in">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Registrar Nueva Venta</h3>
+                <button onclick="closeNewSaleModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="saleForm" onsubmit="saveSale(event)" class="p-5 overflow-y-auto space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Producto *</label>
+                    <select id="saleProductId" required onchange="onSaleProductSelect()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad *</label>
+                        <input type="number" id="saleQty" min="1" required value="1" oninput="updateSaleTotalDisplay()"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Unitario ($) *</label>
+                        <input type="number" step="0.01" id="salePrice" required oninput="updateSaleTotalDisplay()"
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-800">Total Venta:</span>
+                    <span id="saleTotalDisplay" class="text-lg font-black text-emerald-700">$0.00</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Método de Pago</label>
+                        <select id="salePayment" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+                            <option value="Efectivo">Efectivo / Divisas</option>
+                            <option value="Pago Móvil">Pago Móvil / Transferencia</option>
+                            <option value="Zelle">Zelle / PayPal</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                        <input type="date" id="saleDate" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre / Nota del Cliente (Opcional)</label>
+                    <input type="text" id="saleCustomer" placeholder="Ej: Juan Pérez - Entregado en plaza"
+                        class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="saleDeductStock" checked class="w-4 h-4 text-brand-600 rounded">
+                    <label for="saleDeductStock" class="text-xs text-slate-600 font-medium">Descontar automáticamente del stock disponible</label>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closeNewSaleModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100">Cancelar</button>
+                    <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm">Registrar Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT PRODUCT -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-fade-in">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 id="modalProductTitle" class="font-bold text-slate-800 text-base">Añadir Nuevo Producto</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="productForm" onsubmit="saveProduct(event)" class="p-5 overflow-y-auto space-y-4">
+                <input type="hidden" id="prodId">
+
+                <!-- Brand & Name -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Marca *</label>
+                        <input type="text" id="prodBrand" required placeholder="Ej: Lenovo" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre del Producto *</label>
+                        <input type="text" id="prodTitle" required placeholder="Ej: Audífonos Gamer GM2 Pro" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Price, Category & Status -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Precio ($ / Local) *</label>
+                        <input type="number" step="0.01" id="prodPrice" required placeholder="25.00" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Categoría</label>
+                        <input type="text" id="prodCategory" placeholder="Tecnología, Moda..." 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Stock Quantity & Type Status -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad en Stock *</label>
+                        <input type="number" id="prodStockQty" required min="0" placeholder="Ej: 5" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Venta</label>
+                        <select id="prodStatus" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+                            <option value="stock">Entrega Inmediata</option>
+                            <option value="order">Bajo Pedido / Importación</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- MULTI-IMAGE MANAGEMENT (3 IMAGES MAX) -->
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-700">Imágenes del Producto (Mínimo 1, Máximo 3)</label>
+                        <span class="text-[10px] text-slate-400">Archivos o URL</span>
+                    </div>
+
+                    <!-- Image Slot 1 -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <span class="text-[11px] font-bold text-slate-600 block">Imagen 1 (Principal) *</span>
+                        <div class="flex items-center gap-2">
+                            <label for="imgFile1" class="cursor-pointer bg-white border border-slate-300 hover:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-600 font-medium transition">
+                                <i class="fa-solid fa-camera text-brand-600 mr-1"></i> Subir
+                                <input type="file" id="imgFile1" accept="image/*" onchange="handleImageSlotUpload(event, 0)" class="hidden">
+                            </label>
+                            <input type="url" id="imgUrl0" placeholder="o URL de imagen..." oninput="updateImageSlotPreview(0, this.value)"
+                                class="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none">
+                        </div>
+                        <div id="imgPreviewBox0" class="hidden relative h-20 w-full bg-white rounded-lg overflow-hidden border border-slate-200">
+                            <img id="imgSlot0" src="" class="w-full h-full object-contain">
+                            <button type="button" onclick="clearImageSlot(0)" class="absolute top-1 right-1 bg-slate-900/70 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Slot 2 -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <span class="text-[11px] font-bold text-slate-600 block">Imagen 2 (Ángulo / Detalle)</span>
+                        <div class="flex items-center gap-2">
+                            <label for="imgFile2" class="cursor-pointer bg-white border border-slate-300 hover:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-600 font-medium transition">
+                                <i class="fa-solid fa-camera text-brand-600 mr-1"></i> Subir
+                                <input type="file" id="imgFile2" accept="image/*" onchange="handleImageSlotUpload(event, 1)" class="hidden">
+                            </label>
+                            <input type="url" id="imgUrl1" placeholder="o URL de imagen..." oninput="updateImageSlotPreview(1, this.value)"
+                                class="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none">
+                        </div>
+                        <div id="imgPreviewBox1" class="hidden relative h-20 w-full bg-white rounded-lg overflow-hidden border border-slate-200">
+                            <img id="imgSlot1" src="" class="w-full h-full object-contain">
+                            <button type="button" onclick="clearImageSlot(1)" class="absolute top-1 right-1 bg-slate-900/70 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Slot 3 -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <span class="text-[11px] font-bold text-slate-600 block">Imagen 3 (Uso / Empaque)</span>
+                        <div class="flex items-center gap-2">
+                            <label for="imgFile3" class="cursor-pointer bg-white border border-slate-300 hover:border-brand-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-600 font-medium transition">
+                                <i class="fa-solid fa-camera text-brand-600 mr-1"></i> Subir
+                                <input type="file" id="imgFile3" accept="image/*" onchange="handleImageSlotUpload(event, 2)" class="hidden">
+                            </label>
+                            <input type="url" id="imgUrl2" placeholder="o URL de imagen..." oninput="updateImageSlotPreview(2, this.value)"
+                                class="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none">
+                        </div>
+                        <div id="imgPreviewBox2" class="hidden relative h-20 w-full bg-white rounded-lg overflow-hidden border border-slate-200">
+                            <img id="imgSlot2" src="" class="w-full h-full object-contain">
+                            <button type="button" onclick="clearImageSlot(2)" class="absolute top-1 right-1 bg-slate-900/70 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción del Producto (Estilo Puntos Clave)</label>
+                    <textarea id="prodDescription" rows="3" placeholder="Ingresa características separadas por salto de línea..." 
+                        class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closeProductModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100">Cancelar</button>
+                    <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 shadow-sm">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SETTINGS & FACTORY RESET -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-fade-in max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Ajustes y Seguridad</h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-5">
+                <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre de tu Emprendimiento</label>
+                        <input type="text" id="settingStoreName" required placeholder="Mi Tienda Online" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Número de WhatsApp (con código de país)</label>
+                        <input type="tel" id="settingWaNumber" required placeholder="Ej: 584121234567" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Símbolo de Moneda</label>
+                        <input type="text" id="settingCurrency" required placeholder="$" 
+                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 shadow-sm">Guardar Ajustes</button>
+                    </div>
+                </form>
+
+                <!-- Factory Reset Section -->
+                <div class="pt-4 border-t border-slate-100 space-y-2">
+                    <h4 class="font-bold text-xs text-red-600 uppercase tracking-wider">Zona de Peligro</h4>
+                    <p class="text-xs text-slate-500">Borra todos los productos, ventas acumuladas y restablece la aplicación a su estado inicial.</p>
+                    <button type="button" onclick="confirmFactoryReset()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Restablecer Sistema de Fábrica
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AMAZON-STYLE PRODUCT DETAIL (CUSTOMER) -->
+    <div id="productDetailModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-fade-in border border-slate-100">
+            <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amz-orange text-sm"></i>
+                    <span class="text-xs font-bold tracking-wide">Producto Garantizado</span>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-300 hover:text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto space-y-4 flex-1 bg-white">
+                <div class="space-y-1">
+                    <span id="detailBrandLink" class="text-amz-link text-xs font-bold uppercase tracking-wider block"></span>
+                    <h3 id="detailTitle" class="text-base font-bold text-slate-900 leading-snug"></h3>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="relative bg-slate-50 border border-slate-200 rounded-2xl h-64 w-full flex items-center justify-center overflow-hidden p-2">
+                        <img id="detailMainImage" src="" alt="Producto" class="w-full h-full object-contain transition-all duration-200">
+                        <span id="detailBadge" class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-md"></span>
+                    </div>
+
+                    <div id="detailThumbnailsRow" class="flex items-center justify-center gap-2 overflow-x-auto py-1">
+                        <!-- Dynamic Thumbnails -->
+                    </div>
+                </div>
+
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block">Precio Final de Venta</span>
+                    <div class="flex items-baseline gap-1.5">
+                        <span id="detailCurrency" class="text-sm font-bold text-slate-800"></span>
+                        <span id="detailPriceMain" class="text-2xl font-black text-slate-900 tracking-tight"></span>
+                    </div>
+                    <div id="detailStockWarning" class="text-xs font-bold pt-1"></div>
+                </div>
+
+                <div class="space-y-2 pt-1">
+                    <h4 class="font-bold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1">Acerca de este artículo</h4>
+                    <ul id="detailBulletsList" class="space-y-2 text-xs text-slate-700 leading-relaxed pl-1">
+                        <!-- Bullet Points -->
+                    </ul>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-200 bg-slate-50">
+                <a id="detailWaBtn" href="#" target="_blank" class="w-full bg-amz-orange hover:bg-amber-600 text-slate-900 font-black py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition">
+                    <i class="fa-brands fa-whatsapp text-lg text-slate-900"></i> Consultar por WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SECRET_VENDOR_KEY = "Ventas2026JHV";
+
+        const defaultProducts = [
+            {
+                id: '1',
+                brand: 'Lenovo',
+                title: 'Audífonos Lenovo Thinkplus GM2 Pro Inalámbricos',
+                price: 18.50,
+                stockQty: 8,
+                category: 'Tecnología',
+                status: 'stock',
+                images: [
+                    'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&auto=format&fit=crop&q=60',
+                    'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=500&auto=format&fit=crop&q=60',
+                    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60'
+                ],
+                description: 'Bluetooth 5.3 con baja latencia ideal para juegos y deportes.\nEstuche de carga rápida tipo C con indicador LED incorporado.\nMicrófono HD con cancelación de ruido ambiental en llamadas.'
+            },
+            {
+                id: '2',
+                brand: 'Xiaomi',
+                title: 'Smartwatch Xiaomi Redmi Watch 3 Active',
+                price: 42.00,
+                stockQty: 2,
+                category: 'Tecnología',
+                status: 'stock',
+                images: [
+                    'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=500&auto=format&fit=crop&q=60',
+                    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60'
+                ],
+                description: 'Pantalla ultra grande de 1.83 pulgadas con alta luminosidad.\nLlamadas por Bluetooth con altavoz y micrófono integrados.\nMás de 100 modos deportivos y resistencia al agua.'
+            },
+            {
+                id: '3',
+                brand: 'Baseus',
+                title: 'Mini Humidificador de Ambiente RGB',
+                price: 12.00,
+                stockQty: 0,
+                category: 'Hogar',
+                status: 'order',
+                images: [
+                    'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=500&auto=format&fit=crop&q=60'
+                ],
+                description: 'Capacidad de 300ml con apagado automático de seguridad.\nLuz nocturna multicolor RGB ultrasónica silenciosa.'
+            }
+        ];
+
+        const defaultSales = [
+            {
+                id: 's1',
+                productId: '1',
+                productTitle: 'Audífonos Lenovo Thinkplus GM2 Pro Inalámbricos',
+                qty: 2,
+                price: 18.50,
+                total: 37.00,
+                payment: 'Efectivo',
+                date: '2026-03-24',
+                customer: 'Carlos M.'
+            },
+            {
+                id: 's2',
+                productId: '2',
+                productTitle: 'Smartwatch Xiaomi Redmi Watch 3 Active',
+                qty: 1,
+                price: 42.00,
+                total: 42.00,
+                payment: 'Zelle',
+                date: '2026-03-25',
+                customer: 'Ana R.'
+            }
+        ];
+
+        const defaultSettings = {
+            storeName: 'Mi Tienda Import',
+            waNumber: '584120000000',
+            currency: '$'
+        };
+
+        // Application State Variables
+        let products = [];
+        let sales = [];
+        let settings = {};
+        let isAuthenticated = false;
+        let currentMode = 'customer';
+        let selectedCategory = 'All';
+        let currentProductSlotImages = ['', '', ''];
+        let chartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStoredData();
+            renderCategoryFilters();
+            renderCatalog();
+            renderAdminList();
+            updateStoreHeader();
+            updateAdminButtonState();
+        });
+
+        function loadStoredData() {
+            const isInitialized = localStorage.getItem('catalog_app_initialized');
+            const storedProducts = localStorage.getItem('catalog_products');
+            const storedSales = localStorage.getItem('catalog_sales');
+            const storedSettings = localStorage.getItem('catalog_settings');
+
+            if (!isInitialized) {
+                products = defaultProducts;
+                sales = defaultSales;
+                settings = defaultSettings;
+                localStorage.setItem('catalog_app_initialized', 'true');
+                saveData();
+            } else {
+                products = storedProducts !== null ? JSON.parse(storedProducts) : [];
+                sales = storedSales !== null ? JSON.parse(storedSales) : [];
+                settings = storedSettings !== null ? JSON.parse(storedSettings) : defaultSettings;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('catalog_products', JSON.stringify(products));
+            localStorage.setItem('catalog_sales', JSON.stringify(sales));
+            localStorage.setItem('catalog_settings', JSON.stringify(settings));
+        }
+
+        function updateStoreHeader() {
+            document.getElementById('headerStoreName').innerText = settings.storeName || 'Mi Tienda';
+        }
+
+        function handleAdminTrigger() {
+            if (isAuthenticated && currentMode === 'admin') {
+                publishAndPreview();
+            } else if (isAuthenticated && currentMode === 'customer') {
+                showAdminView();
+            } else {
+                openLoginModal();
+            }
+        }
+
+        function openLoginModal() {
+            const pinInput = document.getElementById('loginPinInput');
+            pinInput.value = '';
+            pinInput.type = 'password';
+            document.getElementById('passwordToggleIcon').className = 'fa-solid fa-eye';
+            document.getElementById('loginErrorMsg').classList.add('hidden');
+            document.getElementById('loginModal').classList.remove('hidden');
+            setTimeout(() => pinInput.focus(), 150);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('loginPinInput');
+            const icon = document.getElementById('passwordToggleIcon');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const inputKey = document.getElementById('loginPinInput').value.trim();
+
+            if (inputKey === SECRET_VENDOR_KEY) {
+                isAuthenticated = true;
+                closeLoginModal();
+                showAdminView();
+            } else {
+                document.getElementById('loginErrorMsg').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAuthenticated = false;
+            publishAndPreview();
+        }
+
+        function showAdminView() {
+            if (!isAuthenticated) {
+                openLoginModal();
+                return;
+            }
+
+            currentMode = 'admin';
+            document.getElementById('customerView').classList.add('hidden');
+            document.getElementById('adminView').classList.remove('hidden');
+            updateAdminButtonState();
+            renderDashboardAnalytics();
+            renderAdminList();
+        }
+
+        function publishAndPreview() {
+            currentMode = 'customer';
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('customerView').classList.remove('hidden');
+            updateAdminButtonState();
+            renderCategoryFilters();
+            renderCatalog();
+        }
+
+        function updateAdminButtonState() {
+            const btnText = document.getElementById('btnHeaderAdminText');
+            const badge = document.getElementById('headerModeBadge');
+            const icon = document.getElementById('headerAdminIcon');
+
+            if (currentMode === 'admin' && isAuthenticated) {
+                btnText.innerText = 'Ver Catálogo';
+                badge.innerText = 'Modo Admin Activo';
+                badge.className = 'text-[10px] text-amber-300 font-bold tracking-wide uppercase';
+                icon.className = 'fa-solid fa-unlock text-amber-400';
+            } else {
+                btnText.innerText = isAuthenticated ? 'Panel Admin' : 'Admin';
+                badge.innerText = 'Vista Cliente';
+                badge.className = 'text-[10px] text-brand-100 font-medium tracking-wide uppercase';
+                icon.className = isAuthenticated ? 'fa-solid fa-user-gear text-emerald-400' : 'fa-solid fa-lock text-brand-500';
+            }
+        }
+
+        function renderCategoryFilters() {
+            const container = document.getElementById('categoryFilterContainer');
+            const categories = ['All', ...new Set(products.map(p => p.category).filter(Boolean))];
+
+            container.innerHTML = categories.map(cat => {
+                const isActive = selectedCategory === cat;
+                return `
+                    <button onclick="setCategory('${cat}')" 
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                            isActive ? 'bg-brand-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }">
+                        ${cat === 'All' ? 'Todos' : cat}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function setCategory(cat) {
+            selectedCategory = cat;
+            renderCategoryFilters();
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('customerProductGrid');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+            const filtered = products.filter(p => {
+                const matchesSearch = p.title.toLowerCase().includes(searchVal) || 
+                                     (p.brand && p.brand.toLowerCase().includes(searchVal));
+                const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
+                return matchesSearch && matchesCat;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                document.getElementById('emptyCatalogState').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('emptyCatalogState').classList.add('hidden');
+
+            grid.innerHTML = filtered.map(p => {
+                const statusBadge = getStatusBadgeHTML(p.status, p.stockQty);
+                const waLink = generateWhatsAppLink(p);
+                const mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/400x400/e2e8f0/94a3b8?text=Sin+Imagen';
+
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
+                        <div class="relative bg-slate-100 h-36 w-full cursor-pointer" onclick="openDetailModal('${p.id}')">
+                            <img src="${mainImg}" class="w-full h-full object-contain p-2">
+                            <div class="absolute top-2 left-2">
+                                ${statusBadge}
+                            </div>
+                        </div>
+
+                        <div class="p-3 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                                <span class="text-[10px] font-bold text-amz-blue uppercase tracking-wide block truncate">${p.brand || 'Marca'}</span>
+                                <h3 onclick="openDetailModal('${p.id}')" class="font-semibold text-slate-800 text-xs line-clamp-2 leading-snug cursor-pointer hover:text-brand-600">
+                                    ${p.title}
+                                </h3>
+                            </div>
+
+                            <div class="space-y-2 pt-1 border-t border-slate-100">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-xs text-slate-400">Precio:</span>
+                                    <span class="text-sm font-black text-slate-900">${settings.currency}${parseFloat(p.price).toFixed(2)}</span>
+                                </div>
+
+                                <a href="${waLink}" target="_blank" class="w-full bg-wa-500 hover:bg-wa-600 text-white py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i> Consultar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterProducts() {
+            renderCatalog();
+        }
+
+        function getStatusBadgeHTML(status, stockQty = 0) {
+            const qty = parseInt(stockQty) || 0;
+            if (status === 'order') {
+                return `<span class="bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm"><i class="fa-solid fa-plane"></i> Bajo Pedido</span>`;
+            }
+            if (qty <= 0) {
+                return `<span class="bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm"><i class="fa-solid fa-circle-xmark"></i> Agotado (0)</span>`;
+            } else {
+                return `<span class="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm"><i class="fa-solid fa-boxes-stacked"></i> Stock disponible: ${qty}</span>`;
+            }
+        }
+
+        function generateWhatsAppLink(product) {
+            const phone = settings.waNumber ? settings.waNumber.replace(/[^0-9]/g, '') : '';
+            const qty = parseInt(product.stockQty) || 0;
+            const stockInfo = product.status === 'order' ? 'Bajo Pedido' : (qty <= 0 ? 'Agotado' : `Stock disponible: ${qty}`);
+            
+            let text = `¡Hola *${settings.storeName}*! 👋\n\n`;
+            text += `Me interesa consultar / ordenar el siguiente producto:\n\n`;
+            text += `🏷️ *Marca:* ${product.brand || 'N/A'}\n`;
+            text += `📌 *Producto:* ${product.title}\n`;
+            text += `💰 *Precio:* ${settings.currency}${parseFloat(product.price).toFixed(2)}\n`;
+            text += `📊 *Disponibilidad:* ${stockInfo}\n\n`;
+            text += `¿Tienen disponibilidad para concretar? Gracias.`;
+
+            return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+        }
+
+        function renderDashboardAnalytics() {
+            const totalRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+            const totalItems = sales.reduce((sum, s) => sum + (parseInt(s.qty) || 0), 0);
+            const totalOrders = sales.length;
+            const avgOrder = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+            document.getElementById('metricTotalRevenue').innerText = `${settings.currency}${totalRevenue.toFixed(2)}`;
+            document.getElementById('metricTotalItems').innerText = totalItems;
+            document.getElementById('metricTotalOrders').innerText = totalOrders;
+            document.getElementById('metricAvgOrder').innerText = `${settings.currency}${avgOrder.toFixed(2)}`;
+
+            renderTopProductsChart();
+            renderSalesHistory();
+        }
+
+        function renderTopProductsChart() {
+            const ctx = document.getElementById('topProductsChart').getContext('2d');
+            
+            const productSalesMap = {};
+            sales.forEach(s => {
+                productSalesMap[s.productTitle] = (productSalesMap[s.productTitle] || 0) + parseInt(s.qty);
+            });
+
+            const labels = Object.keys(productSalesMap);
+            const data = Object.values(productSalesMap);
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Sin ventas'],
+                    datasets: [{
+                        label: 'Unidades Vendidas',
+                        data: data.length > 0 ? data : [0],
+                        backgroundColor: '#4f46e5',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function renderSalesHistory() {
+            const list = document.getElementById('salesHistoryList');
+            document.getElementById('salesHistoryCount').innerText = `${sales.length} ventas`;
+
+            if (sales.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-slate-400 py-4">No hay ventas registradas aún.</p>`;
+                return;
+            }
+
+            list.innerHTML = sales.slice().reverse().map(s => `
+                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                    <div class="min-w-0 flex-1 pr-2">
+                        <p class="font-bold text-slate-800 truncate">${s.productTitle}</p>
+                        <p class="text-[10px] text-slate-500">${s.date} • ${s.payment} ${s.customer ? '• ' + s.customer : ''}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="font-black text-emerald-600 block">${settings.currency}${parseFloat(s.total).toFixed(2)}</span>
+                        <span class="text-[10px] text-slate-400">${s.qty} unid.</span>
+                    </div>
+                    <button onclick="deleteSale('${s.id}')" class="ml-2 text-slate-300 hover:text-red-600 p-1">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function openNewSaleModal() {
+            if (!isAuthenticated) return;
+
+            const select = document.getElementById('saleProductId');
+            if (products.length === 0) {
+                alert('Debes registrar al menos un producto antes de realizar una venta.');
+                return;
+            }
+
+            select.innerHTML = products.map(p => `<option value="${p.id}">${p.title} (${settings.currency}${p.price})</option>`).join('');
+
+            document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
+            onSaleProductSelect();
+            document.getElementById('newSaleModal').classList.remove('hidden');
+        }
+
+        function closeNewSaleModal() {
+            document.getElementById('newSaleModal').classList.add('hidden');
+        }
+
+        function onSaleProductSelect() {
+            const prodId = document.getElementById('saleProductId').value;
+            const prod = products.find(p => p.id === prodId);
+            if (prod) {
+                document.getElementById('salePrice').value = prod.price;
+                updateSaleTotalDisplay();
+            }
+        }
+
+        function updateSaleTotalDisplay() {
+            const qty = parseInt(document.getElementById('saleQty').value) || 0;
+            const price = parseFloat(document.getElementById('salePrice').value) || 0;
+            document.getElementById('saleTotalDisplay').innerText = `${settings.currency}${(qty * price).toFixed(2)}`;
+        }
+
+        function saveSale(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('saleProductId').value;
+            const prod = products.find(p => p.id === prodId);
+            if (!prod) return;
+
+            const qty = parseInt(document.getElementById('saleQty').value) || 1;
+            const price = parseFloat(document.getElementById('salePrice').value) || 0;
+            const deductStock = document.getElementById('saleDeductStock').checked;
+
+            const newSale = {
+                id: Date.now().toString(),
+                productId: prod.id,
+                productTitle: prod.title,
+                qty: qty,
+                price: price,
+                total: qty * price,
+                payment: document.getElementById('salePayment').value,
+                date: document.getElementById('saleDate').value,
+                customer: document.getElementById('saleCustomer').value.trim()
+            };
+
+            sales.push(newSale);
+
+            if (deductStock) {
+                prod.stockQty = Math.max(0, (parseInt(prod.stockQty) || 0) - qty);
+            }
+
+            saveData();
+            closeNewSaleModal();
+            renderDashboardAnalytics();
+            renderAdminList();
+        }
+
+        function deleteSale(id) {
+            if (!isAuthenticated) return;
+            if (confirm('¿Deseas eliminar este registro de venta?')) {
+                sales = sales.filter(s => s.id !== id);
+                saveData();
+                renderDashboardAnalytics();
+            }
+        }
+
+        function exportSalesToExcel() {
+            if (!isAuthenticated) return;
+
+            const salesData = sales.map((s, index) => ({
+                'N°': index + 1,
+                'ID Venta': s.id,
+                'Fecha': s.date,
+                'Producto': s.productTitle,
+                'Cantidad': s.qty,
+                'Precio Unitario': s.price,
+                'Total': s.total,
+                'Método de Pago': s.payment,
+                'Cliente / Nota': s.customer || 'N/A'
+            }));
+
+            const inventoryData = products.map((p, index) => ({
+                'N°': index + 1,
+                'Marca': p.brand || 'N/A',
+                'Producto': p.title,
+                'Categoría': p.category || 'N/A',
+                'Precio ($)': p.price,
+                'Cantidad Stock': p.stockQty,
+                'Estado Venta': p.status === 'stock' ? 'Entrega Inmediata' : 'Bajo Pedido',
+                'Valor Inventario ($)': p.price * p.stockQty
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const wsSales = XLSX.utils.json_to_sheet(salesData);
+            const wsInventory = XLSX.utils.json_to_sheet(inventoryData);
+
+            XLSX.utils.book_append_sheet(wb, wsSales, "Historial Ventas");
+            XLSX.utils.book_append_sheet(wb, wsInventory, "Estado Inventario");
+
+            const fileName = `Reporte_Ventas_${settings.storeName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        function renderAdminList() {
+            const list = document.getElementById('adminProductList');
+            document.getElementById('adminProductCount').innerText = products.length;
+
+            if (products.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-slate-400 py-6">No hay productos registrados en el inventario.</p>`;
+                return;
+            }
+
+            list.innerHTML = products.map(p => {
+                const mainImg = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/100x100/e2e8f0/94a3b8?text=N/A';
+                return `
+                    <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+                        <img src="${mainImg}" class="w-14 h-14 rounded-xl object-cover bg-slate-100 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                ${getStatusBadgeHTML(p.status, p.stockQty)}
+                                <span class="text-[10px] text-amz-blue font-bold uppercase truncate">${p.brand || 'Marca'}</span>
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-xs truncate mt-0.5">${p.title}</h4>
+                            <p class="text-xs font-extrabold text-brand-600">${settings.currency}${parseFloat(p.price).toFixed(2)}</p>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editProduct('${p.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-brand-50 hover:text-brand-600 flex items-center justify-center transition text-xs">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition text-xs">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleImageSlotUpload(e, index) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                currentProductSlotImages[index] = evt.target.result;
+                document.getElementById(`imgUrl${index}`).value = '';
+                updateImageSlotPreview(index, evt.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateImageSlotPreview(index, url) {
+            currentProductSlotImages[index] = url;
+            const img = document.getElementById(`imgSlot${index}`);
+            const box = document.getElementById(`imgPreviewBox${index}`);
+            if (url) {
+                img.src = url;
+                box.classList.remove('hidden');
+            } else {
+                img.src = '';
+                box.classList.add('hidden');
+            }
+        }
+
+        function clearImageSlot(index) {
+            currentProductSlotImages[index] = '';
+            document.getElementById(`imgUrl${index}`).value = '';
+            document.getElementById(`imgFile${index + 1}`).value = '';
+            document.getElementById(`imgSlot${index}`).src = '';
+            document.getElementById(`imgPreviewBox${index}`).classList.add('hidden');
+        }
+
+        function openProductModal(editId = null) {
+            if (!isAuthenticated) return;
+            const form = document.getElementById('productForm');
+            form.reset();
+            currentProductSlotImages = ['', '', ''];
+            [0, 1, 2].forEach(i => clearImageSlot(i));
+
+            if (editId) {
+                const prod = products.find(p => p.id === editId);
+                if (prod) {
+                    document.getElementById('modalProductTitle').innerText = 'Editar Producto';
+                    document.getElementById('prodId').value = prod.id;
+                    document.getElementById('prodBrand').value = prod.brand || '';
+                    document.getElementById('prodTitle').value = prod.title;
+                    document.getElementById('prodPrice').value = prod.price;
+                    document.getElementById('prodStockQty').value = prod.stockQty;
+                    document.getElementById('prodCategory').value = prod.category || '';
+                    document.getElementById('prodStatus').value = prod.status || 'stock';
+                    document.getElementById('prodDescription').value = prod.description || '';
+                    if (prod.images) {
+                        prod.images.forEach((imgUrl, i) => {
+                            if (i < 3 && imgUrl) {
+                                document.getElementById(`imgUrl${i}`).value = imgUrl;
+                                updateImageSlotPreview(i, imgUrl);
+                            }
+                        });
+                    }
+                }
+            } else {
+                document.getElementById('modalProductTitle').innerText = 'Añadir Nuevo Producto';
+                document.getElementById('prodId').value = '';
+            }
+
+            document.getElementById('productModal').classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.add('hidden');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('prodId').value || Date.now().toString();
+            const brand = document.getElementById('prodBrand').value.trim();
+            const title = document.getElementById('prodTitle').value.trim();
+            const price = parseFloat(document.getElementById('prodPrice').value);
+            const stockQty = parseInt(document.getElementById('prodStockQty').value) || 0;
+            const category = document.getElementById('prodCategory').value.trim();
+            const status = document.getElementById('prodStatus').value;
+            const description = document.getElementById('prodDescription').value.trim();
+
+            const finalImages = currentProductSlotImages.filter(img => img && img.trim() !== '');
+            if (finalImages.length === 0) {
+                finalImages.push('https://placehold.co/400x400/e2e8f0/94a3b8?text=Sin+Imagen');
+            }
+
+            const newProduct = { id, brand, title, price, stockQty, category, status, images: finalImages, description };
+            const index = products.findIndex(p => p.id === id);
+
+            if (index >= 0) products[index] = newProduct;
+            else products.unshift(newProduct);
+
+            saveData();
+            closeProductModal();
+            renderAdminList();
+            renderCatalog();
+        }
+
+        function editProduct(id) { openProductModal(id); }
+
+        function deleteProduct(id) {
+            if (!isAuthenticated) return;
+            if (confirm('¿Eliminar este producto permanentemente del catálogo?')) {
+                products = products.filter(p => p.id !== id);
+                saveData();
+                renderAdminList();
+                renderCatalog();
+            }
+        }
+
+        function openSettingsModal() {
+            if (!isAuthenticated) return;
+            document.getElementById('settingStoreName').value = settings.storeName;
+            document.getElementById('settingWaNumber').value = settings.waNumber;
+            document.getElementById('settingCurrency').value = settings.currency;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+        function saveSettings(e) {
+            e.preventDefault();
+            settings.storeName = document.getElementById('settingStoreName').value.trim();
+            settings.waNumber = document.getElementById('settingWaNumber').value.trim();
+            settings.currency = document.getElementById('settingCurrency').value.trim();
+
+            saveData();
+            updateStoreHeader();
+            closeSettingsModal();
+            renderCatalog();
+            renderDashboardAnalytics();
+        }
+
+        function confirmFactoryReset() {
+            if (!isAuthenticated) return;
+            const inputPin = prompt('ATENCIÓN: Se borrarán todos los productos y el historial de ventas.\n\nEscribe la clave de vendedor para confirmar:');
+            
+            if (inputPin === SECRET_VENDOR_KEY) {
+                products = [];
+                sales = [];
+                settings = defaultSettings;
+
+                localStorage.setItem('catalog_app_initialized', 'true');
+                saveData();
+
+                updateStoreHeader();
+                closeSettingsModal();
+                renderCatalog();
+                renderDashboardAnalytics();
+                renderAdminList();
+                alert('El sistema ha sido restablecido con éxito. El catálogo está limpio para tus nuevos productos.');
+            } else if (inputPin !== null) {
+                alert('Clave incorrecta. Operación cancelada.');
+            }
+        }
+
+        function openDetailModal(id) {
+            const prod = products.find(p => p.id === id);
+            if (!prod) return;
+
+            const imgs = (prod.images && prod.images.length > 0) ? prod.images : ['https://placehold.co/400x400/e2e8f0/94a3b8?text=Sin+Imagen'];
+            const qty = parseInt(prod.stockQty) || 0;
+
+            document.getElementById('detailBrandLink').innerText = `Marca: ${prod.brand || 'Genérico'}`;
+            document.getElementById('detailTitle').innerText = prod.title;
+
+            const mainImg = document.getElementById('detailMainImage');
+            mainImg.src = imgs[0];
+
+            const thumbContainer = document.getElementById('detailThumbnailsRow');
+            thumbContainer.innerHTML = imgs.map((imgUrl, i) => `
+                <button onclick="switchDetailMainImage('${imgUrl}', this)" 
+                    class="w-12 h-12 rounded-lg border-2 ${i === 0 ? 'border-brand-600 ring-2 ring-brand-100' : 'border-slate-200'} bg-white overflow-hidden flex-shrink-0 transition">
+                    <img src="${imgUrl}" class="w-full h-full object-contain p-0.5">
+                </button>
+            `).join('');
+
+            const badge = document.getElementById('detailBadge');
+            const stockWarning = document.getElementById('detailStockWarning');
+
+            if (prod.status === 'order') {
+                badge.className = 'absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase text-white bg-amber-500 shadow-md';
+                badge.innerText = 'Bajo Pedido / Encargo';
+                stockWarning.className = 'text-xs font-bold text-amber-700 flex items-center gap-1';
+                stockWarning.innerHTML = `<i class="fa-solid fa-plane-arrival"></i> Producto disponible por importación.`;
+            } else if (qty <= 0) {
+                badge.className = 'absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase text-white bg-red-600 shadow-md';
+                badge.innerText = 'Agotado (0 Unidades)';
+                stockWarning.className = 'text-xs font-bold text-red-600 flex items-center gap-1';
+                stockWarning.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Producto agotado actualmente.`;
+            } else {
+                badge.className = 'absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase text-white bg-emerald-600 shadow-md';
+                badge.innerText = `Stock disponible: ${qty}`;
+                stockWarning.className = 'text-xs font-bold text-emerald-700 flex items-center gap-1';
+                stockWarning.innerHTML = `<i class="fa-solid fa-circle-check"></i> Stock disponible: ${qty}`;
+            }
+
+            document.getElementById('detailCurrency').innerText = settings.currency;
+            document.getElementById('detailPriceMain').innerText = parseFloat(prod.price).toFixed(2);
+
+            const bulletsContainer = document.getElementById('detailBulletsList');
+            if (prod.description) {
+                const lines = prod.description.split('\n').filter(line => line.trim() !== '');
+                bulletsContainer.innerHTML = lines.map(line => `
+                    <li class="flex items-start gap-2">
+                        <span class="text-amz-orange font-bold text-sm leading-none">•</span>
+                        <span>${line.trim()}</span>
+                    </li>
+                `).join('');
+            } else {
+                bulletsContainer.innerHTML = `<li class="text-slate-400 italic">Sin especificaciones detalladas.</li>`;
+            }
+
+            document.getElementById('detailWaBtn').href = generateWhatsAppLink(prod);
+            document.getElementById('productDetailModal').classList.remove('hidden');
+        }
+
+        function switchDetailMainImage(url, btnEl) {
+            document.getElementById('detailMainImage').src = url;
+            const allBtns = document.getElementById('detailThumbnailsRow').querySelectorAll('button');
+            allBtns.forEach(btn => btn.className = 'w-12 h-12 rounded-lg border-2 border-slate-200 bg-white overflow-hidden flex-shrink-0 transition');
+            btnEl.className = 'w-12 h-12 rounded-lg border-2 border-brand-600 ring-2 ring-brand-100 bg-white overflow-hidden flex-shrink-0 transition';
+        }
+
+        function closeDetailModal() {
+            document.getElementById('productDetailModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
